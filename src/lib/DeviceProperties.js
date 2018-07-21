@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = require("fs");
+const child_process_1 = require("child_process");
 class DeviceProperties {
     constructor() {
         this.MODEL_FNAME = "/proc/device-tree/model";
@@ -16,6 +17,10 @@ class DeviceProperties {
         else
             console.error('Access deny! path: ' + this.MODEL_FNAME);
         return result;
+    }
+    getTemperature() {
+        const value = child_process_1.execSync('vcgencmd measure_temp').toString();
+        return value.split('=')[1];
     }
     getOsVersion() {
         let version = "Unknown Linux";

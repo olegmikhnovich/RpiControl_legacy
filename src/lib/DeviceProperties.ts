@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import {execSync} from "child_process";
 
 export class DeviceProperties {
     private MODEL_FNAME = "/proc/device-tree/model";
@@ -14,6 +15,11 @@ export class DeviceProperties {
         else
             console.error('Access deny! path: ' + this.MODEL_FNAME);
         return result;
+    }
+
+    getTemperature(): string {
+        const value = execSync('vcgencmd measure_temp').toString();
+        return value.split('=')[1];
     }
 
     getOsVersion(): string {
@@ -48,7 +54,6 @@ export class DeviceProperties {
             return true;
         } else
             return (pwd === fs.readFileSync(pwdName).toString());
-
     }
 
     setNewPwd(oldPwd: string, newPwd: string): boolean {

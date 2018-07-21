@@ -49,6 +49,7 @@ class WebServer {
         const setSoundVolumeLabel = 'set-sound-volume';
         const getSoundVolumeLabel = 'get-sound-volume';
         const updatePortalPwdLabel = 'update-portal-pwd';
+        const getDeviceInfoLabel = 'get-device-info';
         const m = JSON.parse(message);
         let result = '';
         switch (m['action']) {
@@ -75,12 +76,20 @@ class WebServer {
                 break;
             case getSoundVolumeLabel:
                 const ac1 = new AudioControl_1.AudioControl();
-                result = `${ac1.getVolume()}`;
+                result = `[${getSoundVolumeLabel}]OK\n${ac1.getVolume()}`;
                 break;
             case updatePortalPwdLabel:
                 const dp2 = new DeviceProperties_1.DeviceProperties();
                 const res = dp2.setNewPwd(m['old'], m['new']);
                 result = (res) ? `[${updatePortalPwdLabel}]OK` : `[${updatePortalPwdLabel}]Error`;
+                break;
+            case getDeviceInfoLabel:
+                const dp3 = new DeviceProperties_1.DeviceProperties();
+                const _name = `${dp3.getDeviceName()}\n`;
+                const _model = `${dp3.getDeviceModel()}\n`;
+                const _os = `${dp3.getOsVersion()}\n`;
+                const _temp = `${dp3.getTemperature()}\n`;
+                result = `[${getDeviceInfoLabel}]OK\n` + _name + _model + _os + _temp;
                 break;
         }
         return result;
