@@ -5,6 +5,7 @@ const express = require("express");
 const socketIo = require("socket.io");
 const DeviceProperties_1 = require("./DeviceProperties");
 const AudioControl_1 = require("./AudioControl");
+const FileExplorer_1 = require("./FileExplorer");
 class WebServer {
     constructor() {
         this.createApp();
@@ -29,6 +30,15 @@ class WebServer {
         this.server.listen(this.port, '0.0.0.0', 0, () => {
             console.log('Socket server alive on %s.', this.port);
         });
+        this.app.get('/get-file', (req, res) => {
+            const p = req.query.path;
+            if (p !== undefined) {
+                res.sendFile(p);
+            }
+            else {
+                res.sendStatus(404);
+            }
+        });
         this.io.on('connect', (socket) => {
             console.log('Angular client connected. (+)');
             socket.on('message', (m) => {
@@ -50,6 +60,7 @@ class WebServer {
         const getSoundVolumeLabel = 'get-sound-volume';
         const updatePortalPwdLabel = 'update-portal-pwd';
         const getDeviceInfoLabel = 'get-device-info';
+        const getDirectoryLabel = 'get-dir';
         const m = JSON.parse(message);
         let result = '';
         switch (m['action']) {
@@ -90,6 +101,16 @@ class WebServer {
                 const _os = `${dp3.getOsVersion()}\n`;
                 const _temp = `${dp3.getTemperature()}\n`;
                 result = `[${getDeviceInfoLabel}]OK\n` + _name + _model + _os + _temp;
+                break;
+            case getDirectoryLabel:
+                const fe = new FileExplorer_1.FileExplorer();
+                result = `[${getDirectoryLabel}]OK\n`;
+                if (m['path'] === 'home') {
+                    result += fe.getHomeDir().toString();
+                }
+                else {
+                    result += FileExplorer_1.FileExplorer.getDir(m['path']).toString();
+                }
                 break;
         }
         return result;
