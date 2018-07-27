@@ -6,6 +6,8 @@ const socketIo = require("socket.io");
 const DeviceProperties_1 = require("./DeviceProperties");
 const AudioControl_1 = require("./AudioControl");
 const FileExplorer_1 = require("./FileExplorer");
+const Connectivity_1 = require("./Connectivity");
+const Terminal_1 = require("./Terminal");
 class WebServer {
     constructor() {
         this.createApp();
@@ -42,7 +44,7 @@ class WebServer {
         this.io.on('connect', (socket) => {
             console.log('Angular client connected. (+)');
             socket.on('message', (m) => {
-                const response = WebServer.processMessage(m);
+                const response = this.processMessage(m);
                 this.io.emit('message', response);
             });
             socket.on('disconnect', () => {
@@ -53,7 +55,7 @@ class WebServer {
     getApp() {
         return this.app;
     }
-    static processMessage(message) {
+    processMessage(message) {
         const authLabel = 'auth';
         const setDeviceNameLabel = 'set-device-name';
         const setSoundVolumeLabel = 'set-sound-volume';
@@ -61,6 +63,9 @@ class WebServer {
         const updatePortalPwdLabel = 'update-portal-pwd';
         const getDeviceInfoLabel = 'get-device-info';
         const getDirectoryLabel = 'get-dir';
+        const getEthConnLabel = 'get-eth-conn';
+        const sendTermCmdLabel = 'send-term-cmd';
+        const termRespLabel = 'term-resp';
         const m = JSON.parse(message);
         let result = '';
         switch (m['action']) {
@@ -111,6 +116,25 @@ class WebServer {
                 else {
                     result += FileExplorer_1.FileExplorer.getDir(m['path']).toString();
                 }
+                break;
+            case getEthConnLabel:
+                result = `[${getEthConnLabel}]OK\n` +
+                    JSON.stringify(Connectivity_1.Connectivity.getEthernetConnection());
+                break;
+            case sendTermCmdLabel:
+                const process = new Terminal_1.Terminal(m['command']).getProcess();
+                process.stdout.on('data', (data) => {
+                    const res = `[${termRespLabel}]OUT\n` + data;
+                    this.io.emit('message', res);
+                });
+                process.stderr.on('data', (data) => {
+                    const res = `[${termRespLabel}]ERR\n` + data;
+                    this.io.emit('message', res);
+                });
+                process.on('close', (code) => {
+                    const res = `[${termRespLabel}]CLOSE\n` + code;
+                    this.io.emit('message', res);
+                });
                 break;
         }
         return result;
