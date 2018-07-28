@@ -66,6 +66,8 @@ class WebServer {
         const getEthConnLabel = 'get-eth-conn';
         const sendTermCmdLabel = 'send-term-cmd';
         const termRespLabel = 'term-resp';
+        const setPowerOffLabel = 'set-power-off';
+        const setRebootLabel = 'set-reboot';
         const m = JSON.parse(message);
         let result = '';
         switch (m['action']) {
@@ -135,6 +137,12 @@ class WebServer {
                     const res = `[${termRespLabel}]CLOSE\n` + code;
                     this.io.emit('message', res);
                 });
+                break;
+            case setPowerOffLabel:
+                new Terminal_1.Terminal('sudo poweroff');
+                break;
+            case setRebootLabel:
+                new Terminal_1.Terminal('sudo reboot');
                 break;
         }
         return result;
