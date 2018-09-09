@@ -6,6 +6,7 @@ import { AudioControl } from "./AudioControl";
 import { FileExplorer } from "./FileExplorer";
 import { Connectivity } from "./Connectivity";
 import { Terminal } from "./Terminal";
+import { BluetoothService } from "./BluetoothService";
 
 export class WebServer {
     public static readonly PORT: number = 4820;
@@ -82,26 +83,30 @@ export class WebServer {
         const termRespLabel = 'term-resp';
         const setPowerOffLabel = 'set-power-off';
         const setRebootLabel = 'set-reboot';
+        const bluetoothLabel = 'ble-process';
 
         const m = JSON.parse(message);
         let result = '';
+        let bluetoothInstance = null;
+        let dp = null;
+        let ac = null;
 
         switch (m['action']) {
             case authLabel:
-                const dp = new DeviceProperties();
+                dp = new DeviceProperties();
                 result = (dp.getDeviceName() === m['login'] && dp.authUser(m['pwd']))
                     ? `[${authLabel}]OK`
                     :`[${authLabel}]Error`;
                 break;
             case setDeviceNameLabel:
-                const dp1 = new DeviceProperties();
-                dp1.setDeviceName(m['name']);
-                result = (dp1.getDeviceName() === m['name'])
+                dp = new DeviceProperties();
+                dp.setDeviceName(m['name']);
+                result = (dp.getDeviceName() === m['name'])
                     ? `[${setDeviceNameLabel}]OK`
                     : `[${setDeviceNameLabel}]Error`;
                 break;
             case setSoundVolumeLabel:
-                const ac = new AudioControl();
+                ac = new AudioControl();
                 ac.setVolume(m['value']);
                 const volume = ac.getVolume();
                 result = (Math.abs(volume - m['value']) <= 1)
@@ -109,20 +114,20 @@ export class WebServer {
                     : `[${setSoundVolumeLabel}]Error`;
                 break;
             case getSoundVolumeLabel:
-                const ac1 = new AudioControl();
-                result = `[${getSoundVolumeLabel}]OK\n${ac1.getVolume()}`;
+                ac = new AudioControl();
+                result = `[${getSoundVolumeLabel}]OK\n${ac.getVolume()}`;
                 break;
             case updatePortalPwdLabel:
-                const dp2 = new DeviceProperties();
-                const res = dp2.setNewPwd(m['old'], m['new']);
+                dp = new DeviceProperties();
+                const res = dp.setNewPwd(m['old'], m['new']);
                 result = (res) ? `[${updatePortalPwdLabel}]OK` : `[${updatePortalPwdLabel}]Error`;
                 break;
             case getDeviceInfoLabel:
-                const dp3 = new DeviceProperties();
-                const _name = `${dp3.getDeviceName()}\n`;
-                const _model = `${dp3.getDeviceModel()}\n`;
-                const _os = `${dp3.getOsVersion()}\n`;
-                const _temp = `${dp3.getTemperature()}\n`;
+                dp = new DeviceProperties();
+                const _name = `${dp.getDeviceName()}\n`;
+                const _model = `${dp.getDeviceModel()}\n`;
+                const _os = `${dp.getOsVersion()}\n`;
+                const _temp = `${dp.getTemperature()}\n`;
                 result = `[${getDeviceInfoLabel}]OK\n` + _name + _model + _os + _temp;
                 break;
             case getDirectoryLabel:
@@ -158,6 +163,31 @@ export class WebServer {
                 break;
             case setRebootLabel:
                 new Terminal('sudo reboot');
+                break;
+            case bluetoothLabel:
+                if (!bluetoothInstance) {
+                    bluetoothInstance = new BluetoothService().getProcess();
+                }
+                bluetoothInstance.stdin.write(m['command']);
+                if (m['command'] === 'quit') {
+                    bluetoothInstance.kill('SIGTERM');
+                    bluetoothInstance = null;
+                }
+                bluetoothInstance.stdout.on('data', (rawData) => {
+                    const data = BluetoothService.processData(rawData);
+                    if (data.length > 0) {
+                        const res = `[${bluetoothLabel}]OUT\n` + data;
+                        this.io.emit('message', res);
+                    }
+                });
+                bluetoothInstance.stderr.on('data', (data) => {
+                    const res = `[${bluetoothLabel}]ERR\n` + data;
+                    this.io.emit('message', res);
+                });
+                bluetoothInstance.on('close', (code) => {
+                    const res = `[${bluetoothLabel}]CLOSE\n` + code;
+                    this.io.emit('message', res);
+                });
                 break;
         }
         return result;
