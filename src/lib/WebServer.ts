@@ -88,8 +88,10 @@ export class WebServer {
         const m = JSON.parse(message);
         let result = '';
         let bluetoothInstance = null;
+        let bleCommandCache = '';
         let dp = null;
         let ac = null;
+
 
         switch (m['action']) {
             case authLabel:
@@ -168,15 +170,20 @@ export class WebServer {
                 if (!bluetoothInstance) {
                     bluetoothInstance = new BluetoothService().getProcess();
                 }
+                bleCommandCache = m['command'];
                 bluetoothInstance.stdin.write(m['command']);
                 if (m['command'] === 'quit') {
                     bluetoothInstance.kill('SIGTERM');
                     bluetoothInstance = null;
                 }
                 bluetoothInstance.stdout.on('data', (rawData) => {
-                    const data = BluetoothService.processData(rawData);
+                    const data = BluetoothService.processData(rawData, bleCommandCache);
                     if (data.length > 0) {
-                        const res = `[${bluetoothLabel}]OUT\n` + data;
+                        const p = {
+                            data: data.toString(),
+                            command: bleCommandCache
+                        };
+                        const res = `[${bluetoothLabel}]OUT\n` + JSON.stringify(p);
                         this.io.emit('message', res);
                     }
                 });
