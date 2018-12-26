@@ -1,4 +1,6 @@
-# RpiControl [![Build Status](https://travis-ci.com/olegmikhnovich/RpiControl.svg?branch=master)](https://travis-ci.com/olegmikhnovich/RpiControl)
+# RpiControl (Deprecated)
+[![Build Status](https://travis-ci.com/olegmikhnovich/RpiControl.svg?branch=master)](https://travis-ci.com/olegmikhnovich/RpiControl)
+[![Status](https://img.shields.io/badge/status-deprecated-red.svg)](https://github.com/olegmikhnovich/RpiControl#old-versions)
 
 RpiControl is a platform for Raspbian. RpiControl lets you configure and manage your device remotely over your local network.
 
